@@ -2,322 +2,320 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SZ Buyer: B300 Quest (深圳算力大逃杀)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SZ Buyer: B300 Quest (深圳买家像素版)</title>
+    <!-- 引入 Phaser 3 游戏引擎 -->
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <style>
-        :root {
-            --bg-color: #090d16;
-            --card-bg: #111827;
-            --border-color: #1f2937;
-            --text-main: #f3f4f6;
-            --text-dim: #9ca3af;
-            --accent-green: #10b981;
-            --accent-red: #ef4444;
-            --accent-blue: #3b82f6;
-            --accent-yellow: #f59e0b;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            justify-content: center;
+            background-color: #0b0f19;
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            overflow: hidden;
+            touch-action: none;
         }
         #game-container {
-            width: 100%;
-            max-width: 650px;
-            background: var(--card-bg);
-            border-radius: 12px;
-            padding: 24px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.6);
-            border: 1px solid var(--border-color);
-        }
-        .header {
-            text-align: center;
-            border-bottom: 2px solid var(--border-color);
-            padding-bottom: 12px;
-            margin-bottom: 20px;
-        }
-        .header h1 {
-            font-size: 1.5rem;
-            margin: 0 0 5px 0;
-            color: var(--accent-green);
-            letter-spacing: 1px;
-        }
-        .header small { color: var(--text-dim); font-size: 0.85rem; }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-            background: #030712;
-            padding: 14px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            border: 1px solid var(--border-color);
-            font-size: 0.9rem;
-        }
-        .stat-item { display: flex; justify-content: space-between; }
-        .stat-val { font-weight: bold; }
-        .val-money { color: var(--accent-green); }
-        .val-trust { color: var(--accent-blue); }
-        .val-sanity { color: var(--accent-yellow); }
-        .val-risk { color: var(--accent-red); }
-
-        #log-window {
-            height: 160px;
-            overflow-y: auto;
-            background: #030712;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 12px;
-            font-size: 0.85rem;
-            line-height: 1.5;
-            margin-bottom: 20px;
-        }
-        .log-entry { margin-bottom: 6px; }
-        .log-time { color: #4b5563; margin-right: 6px; }
-
-        .event-box {
-            background: #030712;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 16px;
-            margin-bottom: 20px;
-        }
-        .event-title {
-            font-weight: bold;
-            color: var(--accent-blue);
-            margin-bottom: 10px;
-            font-size: 1.1rem;
-        }
-        .event-desc {
-            font-size: 0.9rem;
-            color: #d1d5db;
-            line-height: 1.6;
-            margin-bottom: 15px;
-        }
-
-        .action-area {
+            width: 100vw;
+            height: 100vh;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            align-items: center;
+            justify-content: center;
         }
-        button {
-            background: #1f2937;
-            color: white;
-            border: 1px solid #374151;
-            padding: 12px 16px;
-            border-radius: 6px;
+        /* 游戏内部对话框 UI Overlay */
+        #dialog-box {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 500px;
+            background: rgba(17, 24, 39, 0.95);
+            border: 2px solid #3b82f6;
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.8);
+            display: none;
+            z-index: 100;
+        }
+        .dialog-title {
+            color: #3b82f6;
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+        }
+        .dialog-text {
             font-size: 0.9rem;
+            color: #e5e7eb;
+            line-height: 1.5;
+            margin-bottom: 12px;
+        }
+        .dialog-options {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .dialog-btn {
+            background: #1f2937;
+            color: #fff;
+            border: 1px solid #374151;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 0.85rem;
             cursor: pointer;
             text-align: left;
-            transition: all 0.2s;
         }
-        button:hover {
-            background: #374151;
-            border-color: var(--accent-blue);
-        }
+        .dialog-btn:active { background: #374151; }
     </style>
 </head>
 <body>
 
-<div id="game-container">
-    <div class="header">
-        <h1>SZ Buyer: B300 Quest</h1>
-        <small>深圳福田算力大逃杀 v2.0 (现实黑市警示版)</small>
-    </div>
+<div id="game-container"></div>
 
-    <!-- 玩家状态面板 -->
-    <div class="stats-grid">
-        <div class="stat-item">资金(USDT/现金): <span id="stat-money" class="stat-val val-money">$5,000,000</span></div>
-        <div class="stat-item">行业声誉度: <span id="stat-trust" class="stat-val val-trust">50</span></div>
-        <div class="stat-item">Sanity (精神值): <span id="stat-sanity" class="stat-val val-sanity">100</span></div>
-        <div class="stat-item">合规风险度: <span id="stat-risk" class="stat-val val-risk">0%</span></div>
-    </div>
-
-    <!-- 日志输出窗 -->
-    <div id="log-window" id="log-window"></div>
-
-    <!-- 动态事件与决策区 -->
-    <div class="event-box">
-        <div class="event-title" id="event-title">系统初始化...</div>
-        <div class="event-desc" id="event-desc">加载算力黑市环境...</div>
-    </div>
-
-    <div class="action-area" id="action-area"></div>
+<!-- NPC 交互对话弹窗 -->
+<div id="dialog-box">
+    <div class="dialog-title" id="d-title">对话标题</div>
+    <div class="dialog-text" id="d-text">对话内容...</div>
+    <div class="dialog-options" id="d-options"></div>
 </div>
 
 <script>
-    let state = {
+    // 玩家数据与属性
+    let gameState = {
         money: 5000000,
         trust: 50,
         sanity: 100,
         risk: 0,
-        b300Count: 0,
-        day: 1
+        b300Count: 0
     };
 
-    function updateUI() {
-        document.getElementById('stat-money').innerText = '$' + state.money.toLocaleString();
-        document.getElementById('stat-trust').innerText = state.trust;
-        document.getElementById('stat-sanity').innerText = state.sanity;
-        document.getElementById('stat-risk').innerText = state.risk + '%';
-    }
-
-    function addLog(text) {
-        const logWin = document.getElementById('log-window');
-        const entry = document.createElement('div');
-        entry.className = 'log-entry';
-        entry.innerHTML = `<span class="log-time">[Day ${state.day}]</span> ${text}`;
-        logWin.appendChild(entry);
-        logWin.scrollTop = logWin.scrollHeight;
-    }
-
-    function checkGameOver() {
-        if (state.b300Count >= 64) {
-            renderEnding("SSR 结局：【算力霸主】", "历经千难万险，你成功避开了 90% 的骗子中介和空转单套路，在合规框架下拿到了真实算力！公司大模型顺利登顶，VC 追加巨额融资！");
-            return true;
-        }
-        if (state.money <= 0) {
-            renderEnding("坏结局：【破产清算】", "你的预付款全被黑市中介卷走，公司账上现金归零，投资人将你告上法庭，只能去粤海街道黯然离场。");
-            return true;
-        }
-        if (state.sanity <= 0) {
-            renderEnding("坏结局：【精神崩溃】", "被上百个声称有 B300 现货却全是空转单的 PPT 掮客折磨到崩溃，你在福田写字楼下痛哭，决定退圈。");
-            return true;
-        }
-        if (state.risk >= 100) {
-            renderEnding("坏结局：【移交司法】", "因轻信中间商交出营业执照与资金证明，被卷入跨国走私与非法洗钱链条，公司主体被彻底查封。");
-            return true;
-        }
-        return false;
-    }
-
-    function renderEnding(title, desc) {
-        document.getElementById('event-title').innerText = title;
-        document.getElementById('event-desc').innerText = desc;
-        document.getElementById('action-area').innerHTML = `<button onclick="location.reload()" style="background:#059669; text-align:center;">重新开局（回到南山打铁咖啡）</button>`;
-    }
-
-    // 核心剧情逻辑（模拟黑市 90% 骗局与 OSINT 侦查）
-    const scenes = {
-        start: {
-            title: "福田中心区：微信群涌入 50 个算力中介",
-            desc: "你在朋友圈放出“寻找 B300 现货”的消息。短短 10 分钟，微信炸锅，各路“全球总代”涌入。业内常态：90% 都是空转单和骗取公司营业执照的炒货贩子。",
-            choices: [
-                {
-                    text: "轻信某“总代”：发去公司营业执照和 2,000 万存款证明以“报备配额”",
-                    action: () => {
-                        state.risk += 40;
-                        state.sanity -= 20;
-                        state.trust -= 10;
-                        addLog("你发出了营业执照和资金证明。对方立刻拿你的资质去上游空转套利，你成了他们行骗的‘背书工具’！");
-                        nextScene('osint_test');
-                    }
-                },
-                {
-                    text: "保持警惕：用 WHOIS 和企查查对中介进行 OSINT 开源情报与工商背景调查",
-                    action: () => {
-                        state.trust += 15;
-                        state.sanity += 10;
-                        addLog("经过查证，对方公司的域名是上周注册的个人隐私域名，且在特拉华州已注销——果然是个纯 PPT 骗局！你成功避坑。");
-                        nextScene('real_broker');
-                    }
-                }
-            ]
+    // Phaser 3 游戏全局配置
+    const config = {
+        type: Phaser.AUTO,
+        width: 360,
+        height: 640,
+        parent: 'game-container',
+        scale: {
+            mode: Phaser.Scale.FIT,
+            autoCenter: Phaser.Scale.CENTER_BOTH
         },
-        osint_test: {
-            title: "危机爆发：资质被盗用的连锁反应",
-            desc: "由于轻率交出营业执照，你的公司名义被中介拿去在外网发布虚假 128 台 B300 预售，引来大批债主和监管关注。",
-            choices: [
-                {
-                    text: "花 $50,000 聘请律所紧急发布严正声明并登报澄清，切断风险",
-                    action: () => {
-                        state.money -= 50000;
-                        state.risk -= 20;
-                        addLog("虽然大出血交了学费，但总算保住了公司主体，合规风险暂时下降。");
-                        nextScene('real_broker');
-                    }
-                },
-                {
-                    text: "不管不顾，继续给另一个声称在香港保税仓有货的中介打 100 万定金",
-                    action: () => {
-                        state.money -= 1000000;
-                        state.risk += 50;
-                        state.sanity -= 30;
-                        addLog("100 万定金打过去后，中介直接将你拉黑，仓库根本不存在！");
-                        nextScene('real_broker');
-                    }
-                }
-            ]
+        physics: {
+            default: 'arcade',
+            arcade: { debug: false }
         },
-        real_broker: {
-            title: "暗标交割：遇到真正的极少数合规盘口",
-            desc: "经过多轮筛选，你终于接触到了一条低调的合规通道：对方不看营业执照，只接受香港律所三方托管（Escrow），且要求现场验货。",
-            choices: [
-                {
-                    text: "设立香港律所 Escrow 托管账户，分段打款，带工程师现场上机跑 NCCL 压测",
-                    action: () => {
-                        state.money -= 2000000;
-                        state.b300Count += 16;
-                        state.trust += 30;
-                        addLog("完美交割！成功将 16 台真实的 B300 算力纳入囊中，集群正式上线！");
-                        nextScene('start');
-                    }
-                },
-                {
-                    text: "嫌麻烦，直接在公海用 USDT 一次性全款结算，拒绝现场开箱",
-                    action: () => {
-                        state.money -= 2500000;
-                        state.risk += 40;
-                        addLog("USDT 转出后，卖家失联。运到东莞开箱发现全是废弃配重铅块！");
-                        state.sanity -= 40;
-                        nextScene('start');
-                    }
-                }
-            ]
+        scene: {
+            preload: preload,
+            create: create,
+            update: update
         }
     };
 
-    let currentSceneKey = 'start';
+    const game = new Phaser.Game(config);
+    let player;
+    let cursors;
+    let npcs;
 
-    function loadScene(key) {
-        if (checkGameOver()) return;
-        currentSceneKey = key;
-        const scene = scenes[key];
-        
-        document.getElementById('event-title').innerText = scene.title;
-        document.getElementById('event-desc').innerText = scene.desc;
-        
-        const actionArea = document.getElementById('action-area');
-        actionArea.innerHTML = '';
+    function preload() {
+        // 使用程序化的像素纹理来模拟场景元素（无需外部图片加载）
+        let graphics = this.make.graphics({x: 0, y: 0, add: false});
 
-        scene.choices.forEach(choice => {
-            const btn = document.createElement('button');
-            btn.innerText = choice.text;
-            btn.onclick = () => {
-                choice.action();
-                state.day += 2;
-                updateUI();
-                if (!checkGameOver()) {
-                    loadScene(currentSceneKey); // 循环推进剧情
-                }
-            };
-            actionArea.appendChild(btn);
+        // 1. 生成地面网格地板
+        graphics.fillStyle(0x1e293b, 1);
+        graphics.fillRect(0, 0, 360, 640);
+        graphics.lineStyle(1, 0x334155, 0.5);
+        for (let i = 0; i < 360; i += 40) {
+            graphics.moveTo(i, 0); graphics.lineTo(i, 640);
+        }
+        for (let j = 0; j < 640; j += 40) {
+            graphics.moveTo(0, j); graphics.lineTo(360, j);
+        }
+        graphics.generateTexture('bg_grid', 360, 640);
+
+        // 2. 玩家小人 (蓝色像素小人)
+        graphics.clear();
+        graphics.fillStyle(0x3b82f6, 1);
+        graphics.fillCircle(16, 16, 14);
+        graphics.fillStyle(0xffffff, 1);
+        graphics.fillCircle(20, 12, 3); // 眼睛
+        graphics.generateTexture('player_sprite', 32, 32);
+
+        // 3. 建筑/地点: 万象天地打铁咖啡 (红色)
+        graphics.clear();
+        graphics.fillStyle(0xef4444, 1);
+        graphics.fillRoundedRect(0, 0, 80, 60, 8);
+        graphics.generateTexture('loc_cafe', 80, 60);
+
+        // 4. 建筑/地点: 华强北新亚洲 (黄色)
+        graphics.clear();
+        graphics.fillStyle(0xeab308, 1);
+        graphics.fillRoundedRect(0, 0, 80, 60, 8);
+        graphics.generateTexture('loc_hqb', 80, 60);
+
+        // 5. 建筑/地点: 香港葵涌保税仓 (绿色)
+        graphics.clear();
+        graphics.fillStyle(0x10b981, 1);
+        graphics.fillRoundedRect(0, 0, 80, 60, 8);
+        graphics.generateTexture('loc_hk', 80, 60);
+    }
+
+    function create() {
+        // 背景
+        this.add.image(180, 320, 'bg_grid');
+
+        // 绘制顶栏UI文本
+        this.uiText = this.add.text(10, 10, '', {
+            font: '12px monospace',
+            fill: '#00ffcc',
+            backgroundColor: '#000000b0',
+            padding: { x: 8, y: 6 }
         });
+        updateHUD.call(this);
+
+        // 创建场景交互点 (NPC/建筑)
+        npcs = this.physics.add.staticGroup();
+
+        let cafe = npcs.create(70, 150, 'loc_cafe').setInteractive();
+        cafe.sceneData = 'cafe';
+        this.add.text(40, 140, '打铁咖啡\n[需求发布]', { font: '11px sans-serif', fill: '#ffffff', align: 'center' });
+
+        let hqb = npcs.create(290, 300, 'loc_hqb').setInteractive();
+        hqb.sceneData = 'hqb';
+        this.add.text(260, 290, '华强北赛格\n[查验LOA]', { font: '11px sans-serif', fill: '#000000', align: 'center' });
+
+        let hk = npcs.create(180, 500, 'loc_hk').setInteractive();
+        hk.sceneData = 'hk';
+        this.add.text(150, 490, '香港保税仓\n[算力交割]', { font: '11px sans-serif', fill: '#ffffff', align: 'center' });
+
+        // 创建玩家
+        player = this.physics.add.sprite(180, 320, 'player_sprite');
+        player.setCollideWorldBounds(true);
+
+        // 设置点击地图移动控制 (适配手机触摸屏)
+        this.input.on('pointerdown', (pointer) => {
+            // 如果对话框打开中，不响应移动
+            if (document.getElementById('dialog-box').style.display === 'block') return;
+            this.physics.moveToObject(player, pointer, 150);
+        });
+
+        // 碰撞触发对话
+        this.physics.add.overlap(player, npcs, (p, npc) => {
+            player.body.reset(player.x, player.y); // 停下动作
+            openDialog(npc.sceneData);
+        }, null, this);
     }
 
-    function nextScene(key) {
-        currentSceneKey = key;
+    function update() {
+        // 靠近目标点自动停止
+        if (player.body.speed > 0) {
+            let distance = Phaser.Math.Distance.Between(player.x, player.y, player.body.destinationX || player.x, player.body.destinationY || player.y);
+            if (distance < 5) player.body.reset(player.x, player.y);
+        }
     }
 
-    // 初始化运行
-    addLog("游戏启动：你带着 500 万美元投资入局深圳算力圈，目标是搞定 B300 算力。小心周围 90% 的骗子中介！");
-    updateUI();
-    loadScene('start');
+    function updateHUD() {
+        if (this.uiText) {
+            this.uiText.setText(
+                `资金: $${gameState.money.toLocaleString()}\n` +
+                `精神值: ${gameState.sanity} | 合规风险: ${gameState.risk}%\n` +
+                `B300台数: ${gameState.b300Count} / 64`
+            );
+        }
+    }
+
+    // 交互对话逻辑
+    const dialogs = {
+        cafe: {
+            title: "南山打铁咖啡 (靠近触发)",
+            text: "你走进了咖啡馆，微信群里瞬间涌入 50 个算力中介。有人声称手握‘英伟达直接配额’，要求你提供公司营业执照和资金证明。",
+            options: [
+                {
+                    label: "【把资质发给中介】（风险极高）",
+                    action: () => {
+                        gameState.risk += 35;
+                        gameState.sanity -= 15;
+                        alert("你的营业执照被中介拿去外网空转套利，合规风险飙升！");
+                        closeDialog();
+                    }
+                },
+                {
+                    label: "【进行 OSINT 背景调查】（核验底细）",
+                    action: () => {
+                        gameState.trust += 10;
+                        gameState.sanity += 10;
+                        alert("通过查验发现，中介公司域名上周刚注册且在海外已注销，成功识破假货源！");
+                        closeDialog();
+                    }
+                }
+            ]
+        },
+        hqb: {
+            title: "华强北新亚洲 (靠近触发)",
+            text: "炒货商给你掏出了一份盖满英文公章的 LOA 授权意向书，要求先付 $50 万订金。",
+            options: [
+                {
+                    label: "【直接打款 $50 万订金】",
+                    action: () => {
+                        gameState.money -= 500000;
+                        gameState.sanity -= 20;
+                        alert("打款后中介退群失联，这只是个‘纸上算力’骗局！");
+                        closeDialog();
+                    }
+                },
+                {
+                    label: "【要求现场进行 HBM 显存物理扫描】",
+                    action: () => {
+                        gameState.trust += 15;
+                        alert("对方见你精通技术，心虚地收回了假合同。");
+                        closeDialog();
+                    }
+                }
+            ]
+        },
+        hk: {
+            title: "香港葵涌保税仓 (靠近触发)",
+            text: "到了终极交割环节，对方有真实 B300 现货，要求进行结算。",
+            options: [
+                {
+                    label: "【走香港律所 Escrow 三方托管交割 16 台】",
+                    action: () => {
+                        gameState.money -= 2000000;
+                        gameState.b300Count += 16;
+                        alert("安全完成 16 台 B300 交割！集群成功启动！");
+                        closeDialog();
+                    }
+                }
+            ]
+        }
+    };
+
+    function openDialog(key) {
+        const d = dialogs[key];
+        document.getElementById('d-title').innerText = d.title;
+        document.getElementById('d-text').innerText = d.text;
+        
+        const optsContainer = document.getElementById('d-options');
+        optsContainer.innerHTML = '';
+        
+        d.options.forEach(opt => {
+            let btn = document.createElement('button');
+            btn.className = 'dialog-btn';
+            btn.innerText = opt.label;
+            btn.onclick = () => {
+                opt.action();
+                // 刷新 HUD
+                const scene = game.scene.scenes[0];
+                updateHUD.call(scene);
+            };
+            optsContainer.appendChild(btn);
+        });
+
+        document.getElementById('dialog-box').style.display = 'block';
+    }
+
+    function closeDialog() {
+        document.getElementById('dialog-box').style.display = 'none';
+    }
 </script>
 </body>
 </html>
